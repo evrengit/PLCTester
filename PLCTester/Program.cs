@@ -60,11 +60,11 @@ namespace PLCTester
                     {
                         byte[] buffer = new byte[dataSize];
 
-                        client.DBRead(dbNumber, offsetIntegral, dataSize, buffer);
+                        int readResult = client.DBRead(dbNumber, offsetIntegral, dataSize, buffer);
 
                         var value = GetDynamicValue(buffer, dataType, 0, offsetDecimal);
 
-                        PromtValue($"value: {value}");
+                        PromtValue($"readresult:{readResult} value: {value}");
 
                         var keyInfoRepeat = Console.ReadKey();
                         if (keyInfoRepeat.Key != ConsoleKey.Enter)
