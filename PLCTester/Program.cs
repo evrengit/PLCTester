@@ -9,20 +9,26 @@ namespace PLCTester
             // Prompt the user to enter the IP address
             Promt("IP:rack:slot  (default rack and slot are 0)   :");
 
-            string arguments = Console.ReadLine();
+            var arguments = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(arguments))
+            {
+                PromtError("invalid parameter");
+                return;
+            }
 
             var argumentsSplitted = arguments.Split(":");
 
             int rack = 0;
             int slot = 0;
 
-            if (argumentsSplitted.Count() == 2)
+            if (argumentsSplitted.Length == 2)
             {
                 rack = int.Parse(argumentsSplitted[1]);
                 slot = int.Parse(argumentsSplitted[2]);
             }
 
-            string ipAddress = argumentsSplitted[0];
+            var ipAddress = argumentsSplitted[0];
 
             var client = new S7Client();
 
