@@ -1,19 +1,21 @@
-﻿using Revo.SiemensDrivers.Sharp7;
+﻿using PLCTester.Prompter;
+using Revo.SiemensDrivers.Sharp7;
 
 namespace PLCTester
 {
     static internal class Program
     {
+        private static readonly PromptContext prompter = new PromptContext(new DefaultPromptStrategy());
+        private static readonly PromptContext valuePrompter = new PromptContext(new ValuePromptStrategy());
+        private static readonly PromptContext errorPrompter = new PromptContext(new ErrorPromptStrategy());
+
         static void Main(string[] args)
         {
-            // Prompt the user to enter the IP address
-            Promt("IP:rack:slot  (default rack and slot are 0)   :");
-
             var arguments = Console.ReadLine();
 
             if (string.IsNullOrWhiteSpace(arguments))
             {
-                PromtError("invalid parameter");
+                errorPrompter.Display("invalid parameter");
                 return;
             }
 
@@ -36,16 +38,16 @@ namespace PLCTester
 
             if (result == 0)
             {
-                Promt("Connected to Siemens PLC");
+                prompter.Display("Connected to Siemens PLC");
             }
             else
             {
-                PromtError("Failed to connect to Siemens PLC");
+                errorPrompter.Display("Failed to connect to Siemens PLC");
             }
 
             while (true)
             {
-                Promt("Address: format <<dbnumber>>:<<dataype>>:<<offset>> Sample: 1-int-1.0  :");
+                prompter.Display("Address: format <<dbnumber>>:<<dataype>>:<<offset>> Sample: 1-int-1.0  :");
                 var addressRaw = Console.ReadLine();
 
                 try
@@ -60,7 +62,7 @@ namespace PLCTester
 
                     var dataSize = DataFieldProperties(dataType).DataSize;
 
-                    Promt("enter for reading same tag value. any key to quit!");
+                    prompter.Display("enter for reading same tag value. any key to quit!");
 
                     do
                     {
@@ -70,7 +72,7 @@ namespace PLCTester
 
                         var value = GetDynamicValue(buffer, dataType, 0, offsetDecimal);
 
-                        PromtValue($"readresult:{readResult} value: {value}");
+                        valuePrompter.Display($"readresult:{readResult} value: {value}");
 
                         var keyInfoRepeat = Console.ReadKey();
                         if (keyInfoRepeat.Key != ConsoleKey.Enter)
@@ -81,10 +83,10 @@ namespace PLCTester
                 }
                 catch (Exception ex)
                 {
-                    PromtError($"Parametre okuma hatası. Exception:{ex}");
+                    errorPrompter.Display($"Parametre okuma hatası. Exception:{ex}");
                 }
 
-                Promt("\n\nRead another DB and tag: Help enter: continue. q: quit");
+                prompter.Display("\n\nRead another DB and tag: Help enter: continue. q: quit");
 
                 var keyInfo = Console.ReadKey();
                 if (keyInfo.Key == ConsoleKey.Enter)
@@ -94,7 +96,7 @@ namespace PLCTester
 
                 if (keyInfo.Key == ConsoleKey.Q)
                 {
-                    Promt("Disconnected from Siemens PLC");
+                    prompter.Display("Disconnected from Siemens PLC");
                     client.Disconnect();
                     break;
                 }
@@ -102,30 +104,6 @@ namespace PLCTester
                 client.Disconnect();
                 Console.ReadLine();
             }
-        }
-
-        static void Promt(string text)
-        {
-            PromtBase(text, ConsoleColor.Yellow);
-        }
-
-        static void PromtValue(string text)
-        {
-            PromtBase(text, ConsoleColor.Green);
-        }
-
-        static void PromtError(string text)
-        {
-            PromtBase(text, ConsoleColor.DarkRed);
-        }
-
-        static void PromtBase(string text, ConsoleColor consoleColor)
-        {
-            Console.ForegroundColor = consoleColor;
-
-            Console.WriteLine(text);
-
-            Console.ResetColor();
         }
 
         private static (string DataType, int DataSize) DataFieldProperties(string dataType)
