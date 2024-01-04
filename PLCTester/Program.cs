@@ -1,40 +1,26 @@
 ﻿using PLCTester.Prompter;
 using Revo.SiemensDrivers.Sharp7;
+using System.Text.RegularExpressions;
 
 namespace PLCTester
 {
+    record struct ConnectionParameter(string Ip, int Rack, int Slot);
+
     static internal class Program
     {
-        private static readonly PromptContext prompter = new PromptContext(new DefaultPromptStrategy());
-        private static readonly PromptContext valuePrompter = new PromptContext(new ValuePromptStrategy());
-        private static readonly PromptContext errorPrompter = new PromptContext(new ErrorPromptStrategy());
+        private static readonly PromptContext prompter = new(new DefaultPromptStrategy());
+        private static readonly PromptContext valuePrompter = new(new ValuePromptStrategy());
+        private static readonly PromptContext errorPrompter = new(new ErrorPromptStrategy());
 
-        static void Main(string[] args)
+        private static ConnectionParameter connectionParameters;
+
+        static void Main()
         {
-            var arguments = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(arguments))
-            {
-                errorPrompter.Display("invalid parameter");
-                return;
-            }
-
-            var argumentsSplitted = arguments.Split(":");
-
-            int rack = 0;
-            int slot = 0;
-
-            if (argumentsSplitted.Length == 2)
-            {
-                rack = int.Parse(argumentsSplitted[1]);
-                slot = int.Parse(argumentsSplitted[2]);
-            }
-
-            var ipAddress = argumentsSplitted[0];
+            InitializeConnectionParameters();
 
             var client = new S7Client();
 
-            int result = client.ConnectTo(ipAddress, rack, slot);
+            int result = client.ConnectTo(connectionParameters.Ip, connectionParameters.Rack, connectionParameters.Slot);
 
             if (result == 0)
             {
@@ -104,6 +90,46 @@ namespace PLCTester
                 client.Disconnect();
                 Console.ReadLine();
             }
+        }
+
+        static void InitializeConnectionParameters()
+        {
+            prompter.Display("IP:rack:slot   (Enter values like that!)");
+
+            var arguments = Console.ReadLine();
+
+            var invalidParameterAction = () =>
+            {
+                errorPrompter.Display("invalid parameter");
+                Thread.Sleep(3);
+                Environment.Exit(0);
+            };
+
+            if (string.IsNullOrWhiteSpace(arguments))
+            {
+                invalidParameterAction.Invoke();
+            }
+
+            var inputFormat = @"^\d{1,3}\.\d{1,3}\.\d{1,3}:\w+:\w+$";
+            if (!Regex.IsMatch(arguments, inputFormat))
+            {
+                invalidParameterAction.Invoke();
+            }
+
+            var argumentsSplitted = arguments.Split(":");
+            var ipAddress = argumentsSplitted[0];
+
+            string ipPattern = @"^(\d{1,3}\.){3}\d{1,3}$";
+
+            if (!Regex.IsMatch(ipAddress, ipPattern))
+            {
+                invalidParameterAction.Invoke();
+            }
+
+            var rack = int.Parse(argumentsSplitted[1]);
+            var slot = int.Parse(argumentsSplitted[2]);
+
+            connectionParameters = new ConnectionParameter(ipAddress, rack, slot);
         }
 
         private static (string DataType, int DataSize) DataFieldProperties(string dataType)
